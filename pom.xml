@@ -27,6 +27,12 @@
 
     <dependencies>
 
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Spring Web MVC and JSON -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
