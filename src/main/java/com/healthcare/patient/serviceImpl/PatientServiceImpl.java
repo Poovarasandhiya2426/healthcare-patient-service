@@ -21,6 +21,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.healthcare.patient.enums.PatientStatus;
+import com.healthcare.patient.entity.Patient;
+import com.healthcare.patient.dto.response.PatientSummaryResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
 @Service
@@ -199,6 +206,29 @@ public class PatientServiceImpl implements PatientService {
         return ApiResponse.success(
                 PatientConstants.PATIENT_DEACTIVATED,
                 null
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ApiResponse<Page<PatientSummaryResponse>> searchPatients(
+            String keyword,
+            PatientStatus status,
+            Pageable pageable) {
+
+        Page<Patient> patients = patientRepository.searchPatients(
+                keyword,
+                status,
+                pageable
+        );
+
+        Page<PatientSummaryResponse> response = patients.map(
+                patientMapper::toSummaryResponse
+        );
+
+        return ApiResponse.success(
+                "Patients retrieved successfully",
+                response
         );
     }
 }

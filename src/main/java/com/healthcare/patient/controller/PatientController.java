@@ -14,6 +14,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.healthcare.patient.enums.PatientStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -76,5 +82,35 @@ public class PatientController {
 
         return ResponseEntity.ok(
                 patientService.deactivatePatient(patientId));
+    }
+
+    // Search, Filter and Pagination
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<Page<PatientSummaryResponse>>> searchPatients(
+
+            @RequestParam(required = false) String keyword,
+
+            @RequestParam(required = false) PatientStatus status,
+
+            @RequestParam(defaultValue = "0") int page,
+
+            @RequestParam(defaultValue = "10") int size,
+
+            @RequestParam(defaultValue = "id") String sortBy,
+
+            @RequestParam(defaultValue = "DESC") String direction) {
+
+        Sort.Direction sortDirection =
+                Sort.Direction.fromString(direction);
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(sortDirection, sortBy)
+        );
+
+        return ResponseEntity.ok(
+                patientService.searchPatients(keyword, status, pageable)
+        );
     }
 }

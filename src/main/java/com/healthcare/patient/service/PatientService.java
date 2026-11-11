@@ -6,6 +6,9 @@ import com.healthcare.patient.dto.request.PatientUpdateRequest;
 import com.healthcare.patient.dto.response.ApiResponse;
 import com.healthcare.patient.dto.response.PatientResponse;
 import com.healthcare.patient.dto.response.PatientSummaryResponse;
+import com.healthcare.patient.enums.PatientStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -25,4 +28,10 @@ public interface PatientService {
             PatientUpdateRequest request);
 
     ApiResponse<Void> deactivatePatient(Long patientId);
+
+    ApiResponse<Page<PatientSummaryResponse>> searchPatients(
+            String keyword,
+            PatientStatus status,
+            Pageable pageable
+    );
 }
