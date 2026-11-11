@@ -8,15 +8,16 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
@@ -29,30 +30,35 @@ public class SecurityConfig {
             throws Exception {
 
         http
-                // Disable CSRF for REST APIs
                 .csrf(csrf -> csrf.disable())
 
-                // API Authorization
-                .authorizeHttpRequests(auth -> auth
-
-                        // Public health check
-                        .requestMatchers("/actuator/health").permitAll()
-
-                        // All other APIs require JWT authentication
-                        .anyRequest().authenticated()
-                )
-
-                // Custom 401 JSON response
-                .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(securityErrorHandler)
-                )
-
-                // Stateless authentication
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                // Register JWT filter
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(securityErrorHandler)
+                )
+
+                .authorizeHttpRequests(auth -> auth
+
+                        // Swagger and OpenAPI documentation
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/v3/api-docs.yaml"
+                        ).permitAll()
+
+                        // Actuator health endpoint
+                        .requestMatchers(
+                                "/actuator/health"
+                        ).permitAll()
+
+                        // All other endpoints require JWT authentication
+                        .anyRequest().authenticated()
+                )
+
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
