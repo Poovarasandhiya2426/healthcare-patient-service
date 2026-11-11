@@ -1,0 +1,204 @@
+
+package com.healthcare.patient.serviceImpl;
+
+import com.healthcare.patient.audit.PatientAuditService;
+import com.healthcare.patient.constants.PatientConstants;
+import com.healthcare.patient.dto.request.PatientRegistrationRequest;
+import com.healthcare.patient.dto.request.PatientUpdateRequest;
+import com.healthcare.patient.dto.response.ApiResponse;
+import com.healthcare.patient.dto.response.PatientResponse;
+import com.healthcare.patient.dto.response.PatientSummaryResponse;
+import com.healthcare.patient.entity.Patient;
+import com.healthcare.patient.enums.PatientStatus;
+import com.healthcare.patient.mapper.PatientMapper;
+import com.healthcare.patient.repository.PatientRepository;
+import com.healthcare.patient.service.PatientService;
+
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class PatientServiceImpl implements PatientService {
+
+    private final PatientRepository patientRepository;
+    private final PatientMapper patientMapper;
+    private final PatientAuditService patientAuditService;
+
+    // Register Patient
+    @Override
+    public ApiResponse<PatientResponse> registerPatient(
+            PatientRegistrationRequest request) {
+
+        if (patientRepository.existsByEmail(request.getEmail())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    PatientConstants.EMAIL_ALREADY_EXISTS
+            );
+        }
+
+        if (patientRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    PatientConstants.PHONE_ALREADY_EXISTS
+            );
+        }
+
+        Patient patient = patientMapper.toEntity(request);
+
+        Patient savedPatient = patientRepository.save(patient);
+
+        // Audit logging
+        patientAuditService.logActivity(
+                savedPatient.getId(),
+                "REGISTER",
+                "New patient registered",
+                "SYSTEM"
+        );
+
+        return ApiResponse.success(
+                PatientConstants.PATIENT_REGISTERED,
+                patientMapper.toResponse(savedPatient)
+        );
+    }
+
+    // Get Patient By ID
+    @Override
+    @Transactional(readOnly = true)
+    public ApiResponse<PatientResponse> getPatientById(Long patientId) {
+
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Patient not found with ID: " + patientId
+                ));
+
+        return ApiResponse.success(
+                PatientConstants.PATIENT_RETRIEVED,
+                patientMapper.toResponse(patient)
+        );
+    }
+
+    // Get Patient By Email
+    @Override
+    @Transactional(readOnly = true)
+    public ApiResponse<PatientResponse> getPatientByEmail(String email) {
+
+        Patient patient = patientRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Patient not found with email: " + email
+                ));
+
+        return ApiResponse.success(
+                PatientConstants.PATIENT_RETRIEVED,
+                patientMapper.toResponse(patient)
+        );
+    }
+
+    // Get All Patients
+    @Override
+    @Transactional(readOnly = true)
+    public ApiResponse<List<PatientSummaryResponse>> getAllPatients() {
+
+        List<PatientSummaryResponse> patients =
+                patientRepository.findAll()
+                        .stream()
+                        .map(patientMapper::toSummaryResponse)
+                        .toList();
+
+        return ApiResponse.success(
+                PatientConstants.PATIENTS_RETRIEVED,
+                patients
+        );
+    }
+
+    // Update Patient
+    @Override
+    public ApiResponse<PatientResponse> updatePatient(
+            Long patientId,
+            PatientUpdateRequest request) {
+
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Patient not found with ID: " + patientId
+                ));
+
+        boolean emailUsed = patientRepository
+                .findByEmail(request.getEmail())
+                .filter(existing -> !existing.getId().equals(patientId))
+                .isPresent();
+
+        if (emailUsed) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    PatientConstants.EMAIL_ALREADY_EXISTS
+            );
+        }
+
+        boolean phoneUsed = patientRepository
+                .findByPhoneNumber(request.getPhoneNumber())
+                .filter(existing -> !existing.getId().equals(patientId))
+                .isPresent();
+
+        if (phoneUsed) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    PatientConstants.PHONE_ALREADY_EXISTS
+            );
+        }
+
+        patientMapper.updateEntity(patient, request);
+
+        Patient updatedPatient = patientRepository.save(patient);
+
+        // Audit logging
+        patientAuditService.logActivity(
+                updatedPatient.getId(),
+                "UPDATE",
+                "Patient details updated",
+                "SYSTEM"
+        );
+
+        return ApiResponse.success(
+                PatientConstants.PATIENT_UPDATED,
+                patientMapper.toResponse(updatedPatient)
+        );
+    }
+
+    // Deactivate Patient
+    @Override
+    public ApiResponse<Void> deactivatePatient(Long patientId) {
+
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Patient not found with ID: " + patientId
+                ));
+
+        patient.setStatus(PatientStatus.INACTIVE);
+
+        patientRepository.save(patient);
+
+        // Audit logging
+        patientAuditService.logActivity(
+                patient.getId(),
+                "DEACTIVATE",
+                "Patient account deactivated",
+                "SYSTEM"
+        );
+
+        return ApiResponse.success(
+                PatientConstants.PATIENT_DEACTIVATED,
+                null
+        );
+    }
+}
