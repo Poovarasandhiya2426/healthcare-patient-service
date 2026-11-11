@@ -37,7 +37,7 @@ public class PatientServiceImpl implements PatientService {
     private final PatientMapper patientMapper;
     private final PatientAuditService patientAuditService;
 
-    // Get currently logged-in user's email from JWT authentication
+    // Get currently logged-in user's email
     private String getCurrentUserEmail() {
 
         Authentication authentication =
@@ -51,6 +51,31 @@ public class PatientServiceImpl implements PatientService {
         }
 
         return "SYSTEM";
+    }
+
+    // Check whether logged-in patient owns the profile
+    private void validatePatientOwnership(Patient patient) {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication != null
+                && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken)
+                && authentication.getAuthorities().stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_PATIENT"))) {
+
+            String loggedInEmail = authentication.getName();
+
+            if (!patient.getEmail().equalsIgnoreCase(loggedInEmail)) {
+
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "You are not authorized to access this patient profile"
+                );
+            }
+        }
     }
 
     // Register Patient
@@ -76,7 +101,6 @@ public class PatientServiceImpl implements PatientService {
 
         Patient savedPatient = patientRepository.save(patient);
 
-        // Audit logging
         patientAuditService.logActivity(
                 savedPatient.getId(),
                 "REGISTER",
@@ -101,6 +125,8 @@ public class PatientServiceImpl implements PatientService {
                         "Patient not found with ID: " + patientId
                 ));
 
+        validatePatientOwnership(patient);
+
         return ApiResponse.success(
                 PatientConstants.PATIENT_RETRIEVED,
                 patientMapper.toResponse(patient)
@@ -117,6 +143,8 @@ public class PatientServiceImpl implements PatientService {
                         HttpStatus.NOT_FOUND,
                         "Patient not found with email: " + email
                 ));
+
+        validatePatientOwnership(patient);
 
         return ApiResponse.success(
                 PatientConstants.PATIENT_RETRIEVED,
@@ -152,6 +180,27 @@ public class PatientServiceImpl implements PatientService {
                         HttpStatus.NOT_FOUND,
                         "Patient not found with ID: " + patientId
                 ));
+
+        // Validate patient ownership before updating
+        validatePatientOwnership(patient);
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        boolean isPatient = authentication != null
+                && authentication.getAuthorities().stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_PATIENT"));
+
+        // Patient cannot change their registered email
+        if (isPatient
+                && !patient.getEmail().equalsIgnoreCase(request.getEmail())) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Patients are not allowed to change their registered email"
+            );
+        }
 
         boolean emailUsed = patientRepository
                 .findByEmail(request.getEmail())
@@ -209,7 +258,6 @@ public class PatientServiceImpl implements PatientService {
 
         patientRepository.save(patient);
 
-        // Audit logging
         patientAuditService.logActivity(
                 patient.getId(),
                 "DEACTIVATE",

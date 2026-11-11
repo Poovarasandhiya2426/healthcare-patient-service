@@ -45,9 +45,9 @@ public class PatientController {
     }
 
     // Get Patient By ID
-    // ADMIN, DOCTOR and RECEPTIONIST can view patient details
+    // ADMIN, DOCTOR, RECEPTIONIST and PATIENT can access
     @GetMapping("/{patientId:\\d+}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'RECEPTIONIST', 'PATIENT')")
     public ResponseEntity<ApiResponse<PatientResponse>> getPatientById(
             @PathVariable Long patientId) {
 
@@ -77,9 +77,10 @@ public class PatientController {
     }
 
     // Update Patient
-    // ADMIN and RECEPTIONIST can update patient details
+    // ADMIN, RECEPTIONIST and PATIENT can update
+    // PATIENT can update only their own profile
     @PutMapping("/{patientId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'PATIENT')")
     public ResponseEntity<ApiResponse<PatientResponse>> updatePatient(
             @PathVariable Long patientId,
             @Valid @RequestBody PatientUpdateRequest request) {

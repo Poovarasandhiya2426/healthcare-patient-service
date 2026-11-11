@@ -25,10 +25,11 @@ public class PatientAddressController {
 
     private final PatientAddressService patientAddressService;
 
-    // Add patient address
-    // ADMIN and RECEPTIONIST can add addresses
+    // Add Patient Address
+    // ADMIN, RECEPTIONIST and PATIENT can add addresses
+    // PATIENT can add only their own address
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'PATIENT')")
     public ResponseEntity<ApiResponse<PatientAddressResponse>> addAddress(
             @PathVariable Long patientId,
             @Valid @RequestBody PatientAddressRequest request) {
@@ -37,13 +38,15 @@ public class PatientAddressController {
                 patientAddressService.addAddress(patientId, request);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Address added successfully", response));
+                .body(ApiResponse.success(
+                        "Address added successfully", response));
     }
 
-    // Get all addresses of a patient
-    // ADMIN, DOCTOR and RECEPTIONIST can view addresses
+    // Get All Patient Addresses
+    // ADMIN, DOCTOR, RECEPTIONIST and PATIENT can view addresses
+    // PATIENT can view only their own addresses
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'RECEPTIONIST', 'PATIENT')")
     public ResponseEntity<ApiResponse<List<PatientAddressResponse>>> getPatientAddresses(
             @PathVariable Long patientId) {
 
@@ -51,13 +54,14 @@ public class PatientAddressController {
                 patientAddressService.getPatientAddresses(patientId);
 
         return ResponseEntity.ok(
-                ApiResponse.success("Addresses retrieved successfully", response));
+                ApiResponse.success(
+                        "Addresses retrieved successfully", response));
     }
 
-    // Get address by ID
-    // ADMIN, DOCTOR and RECEPTIONIST can view address details
+    // Get Address By ID
+    // ADMIN, DOCTOR, RECEPTIONIST and PATIENT can view address details
     @GetMapping("/{addressId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'RECEPTIONIST', 'PATIENT')")
     public ResponseEntity<ApiResponse<PatientAddressResponse>> getAddressById(
             @PathVariable Long patientId,
             @PathVariable Long addressId) {
@@ -66,29 +70,32 @@ public class PatientAddressController {
                 patientAddressService.getAddressById(patientId, addressId);
 
         return ResponseEntity.ok(
-                ApiResponse.success("Address retrieved successfully", response));
+                ApiResponse.success(
+                        "Address retrieved successfully", response));
     }
 
-    // Update address
-    // ADMIN and RECEPTIONIST can update addresses
+    // Update Patient Address
+    // ADMIN, RECEPTIONIST and PATIENT can update addresses
     @PutMapping("/{addressId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'PATIENT')")
     public ResponseEntity<ApiResponse<PatientAddressResponse>> updateAddress(
             @PathVariable Long patientId,
             @PathVariable Long addressId,
             @Valid @RequestBody PatientAddressRequest request) {
 
         PatientAddressResponse response =
-                patientAddressService.updateAddress(patientId, addressId, request);
+                patientAddressService.updateAddress(
+                        patientId, addressId, request);
 
         return ResponseEntity.ok(
-                ApiResponse.success("Address updated successfully", response));
+                ApiResponse.success(
+                        "Address updated successfully", response));
     }
 
-    // Delete address
-    // Only ADMIN and RECEPTIONIST can delete addresses
+    // Delete Patient Address
+    // ADMIN, RECEPTIONIST and PATIENT can delete addresses
     @DeleteMapping("/{addressId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'PATIENT')")
     public ResponseEntity<ApiResponse<Void>> deleteAddress(
             @PathVariable Long patientId,
             @PathVariable Long addressId) {
@@ -96,6 +103,7 @@ public class PatientAddressController {
         patientAddressService.deleteAddress(patientId, addressId);
 
         return ResponseEntity.ok(
-                ApiResponse.success("Address deleted successfully", null));
+                ApiResponse.success(
+                        "Address deleted successfully", null));
     }
 }

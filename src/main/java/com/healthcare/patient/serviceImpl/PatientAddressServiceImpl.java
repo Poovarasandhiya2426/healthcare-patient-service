@@ -1,3 +1,4 @@
+
 package com.healthcare.patient.serviceImpl;
 
 import com.healthcare.patient.dto.request.PatientAddressRequest;
@@ -7,8 +8,12 @@ import com.healthcare.patient.entity.PatientAddress;
 import com.healthcare.patient.repository.PatientAddressRepository;
 import com.healthcare.patient.repository.PatientRepository;
 import com.healthcare.patient.service.PatientAddressService;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -23,6 +28,7 @@ public class PatientAddressServiceImpl implements PatientAddressService {
     private final PatientRepository patientRepository;
     private final PatientAddressRepository patientAddressRepository;
 
+    // Add Patient Address
     @Override
     public PatientAddressResponse addAddress(
             Long patientId, PatientAddressRequest request) {
@@ -39,14 +45,17 @@ public class PatientAddressServiceImpl implements PatientAddressService {
                 .patient(patient)
                 .build();
 
-        PatientAddress savedAddress = patientAddressRepository.save(address);
+        PatientAddress savedAddress =
+                patientAddressRepository.save(address);
 
         return toResponse(savedAddress);
     }
 
+    // Get All Patient Addresses
     @Override
     @Transactional(readOnly = true)
-    public List<PatientAddressResponse> getPatientAddresses(Long patientId) {
+    public List<PatientAddressResponse> getPatientAddresses(
+            Long patientId) {
 
         Patient patient = getPatient(patientId);
 
@@ -56,6 +65,7 @@ public class PatientAddressServiceImpl implements PatientAddressService {
                 .toList();
     }
 
+    // Get Address By ID
     @Override
     @Transactional(readOnly = true)
     public PatientAddressResponse getAddressById(
@@ -66,14 +76,17 @@ public class PatientAddressServiceImpl implements PatientAddressService {
         PatientAddress address = patientAddressRepository
                 .findByIdAndPatient(addressId, patient)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Patient address not found"));
+                        HttpStatus.NOT_FOUND,
+                        "Patient address not found"));
 
         return toResponse(address);
     }
 
+    // Update Patient Address
     @Override
     public PatientAddressResponse updateAddress(
-            Long patientId, Long addressId,
+            Long patientId,
+            Long addressId,
             PatientAddressRequest request) {
 
         Patient patient = getPatient(patientId);
@@ -81,7 +94,8 @@ public class PatientAddressServiceImpl implements PatientAddressService {
         PatientAddress address = patientAddressRepository
                 .findByIdAndPatient(addressId, patient)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Patient address not found"));
+                        HttpStatus.NOT_FOUND,
+                        "Patient address not found"));
 
         address.setAddressLine(request.getAddressLine());
         address.setCity(request.getCity());
@@ -96,6 +110,7 @@ public class PatientAddressServiceImpl implements PatientAddressService {
         return toResponse(updatedAddress);
     }
 
+    // Delete Patient Address
     @Override
     public void deleteAddress(Long patientId, Long addressId) {
 
@@ -104,19 +119,51 @@ public class PatientAddressServiceImpl implements PatientAddressService {
         PatientAddress address = patientAddressRepository
                 .findByIdAndPatient(addressId, patient)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Patient address not found"));
+                        HttpStatus.NOT_FOUND,
+                        "Patient address not found"));
 
         patientAddressRepository.delete(address);
     }
 
+    // Get Patient and Validate Ownership
     private Patient getPatient(Long patientId) {
 
-        return patientRepository.findById(patientId)
+        Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Patient not found"));
+                        HttpStatus.NOT_FOUND,
+                        "Patient not found"));
+
+        validatePatientOwnership(patient);
+
+        return patient;
     }
 
-    private PatientAddressResponse toResponse(PatientAddress address) {
+    // Validate Logged-in Patient Ownership
+    private void validatePatientOwnership(Patient patient) {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication != null
+                && authentication.isAuthenticated()
+                && authentication.getAuthorities().stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_PATIENT"))) {
+
+            String loggedInEmail = authentication.getName();
+
+            if (!patient.getEmail().equalsIgnoreCase(loggedInEmail)) {
+
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "You are not authorized to access this patient's address");
+            }
+        }
+    }
+
+    // Convert Entity to Response DTO
+    private PatientAddressResponse toResponse(
+            PatientAddress address) {
 
         return PatientAddressResponse.builder()
                 .id(address.getId())
