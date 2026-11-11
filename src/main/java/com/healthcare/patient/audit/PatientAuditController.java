@@ -7,6 +7,7 @@ import com.healthcare.patient.dto.response.PatientAuditResponse;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,7 +20,9 @@ public class PatientAuditController {
     private final PatientAuditService patientAuditService;
 
     // Get audit history by patient ID
+    // Only ADMIN can access patient audit history
     @GetMapping("/patient/{patientId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<PatientAuditResponse>>> getPatientAuditHistory(
             @PathVariable Long patientId) {
 
@@ -35,7 +38,9 @@ public class PatientAuditController {
     }
 
     // Get audit history by action
+    // Only ADMIN can access audit history by action
     @GetMapping("/action/{action}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<PatientAuditResponse>>> getAuditHistoryByAction(
             @PathVariable String action) {
 
