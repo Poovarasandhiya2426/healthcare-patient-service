@@ -1,3 +1,4 @@
+
 package com.healthcare.patient.security;
 
 import jakarta.servlet.FilterChain;
@@ -30,54 +31,68 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain)
             throws ServletException, IOException {
 
+        // Get Authorization header
         String authHeader = request.getHeader("Authorization");
 
+        // Check whether Bearer token is present
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        // Extract JWT token
         String token = authHeader.substring(7);
 
+        // Validate JWT token
         if (!jwtUtil.validateToken(token)) {
 
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
 
             response.getWriter().write("""
-        {
-            "success": false,
-            "message": "Invalid or expired JWT token. Please login again.",
-            "data": null
-        }
-        """);
+                    {
+                        "success": false,
+                        "message": "Invalid or expired JWT token. Please login again.",
+                        "data": null
+                    }
+                    """);
 
             return;
         }
 
+        // Check whether authentication already exists
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
 
+            // Extract user details from JWT
             String email = jwtUtil.extractEmail(token);
             String role = jwtUtil.extractRole(token);
 
+            // Handle role prefix correctly
+            String authority = role.startsWith("ROLE_")
+                    ? role
+                    : "ROLE_" + role;
+
+            // Create authentication object
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
                             email,
                             null,
-                            List.of(new SimpleGrantedAuthority(
-                                    role.startsWith("ROLE_") ? role : "ROLE_" + role
-                            ))
+                            List.of(new SimpleGrantedAuthority(authority))
                     );
 
+            // Set authentication details
             authentication.setDetails(
                     new WebAuthenticationDetailsSource()
                             .buildDetails(request)
             );
 
+            // Store authentication in SecurityContext
             SecurityContextHolder.getContext()
                     .setAuthentication(authentication);
         }
 
+        // Continue filter chain
         filterChain.doFilter(request, response);
     }
 }

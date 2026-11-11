@@ -16,17 +16,15 @@ import com.healthcare.patient.service.PatientService;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-
-import com.healthcare.patient.enums.PatientStatus;
-import com.healthcare.patient.entity.Patient;
-import com.healthcare.patient.dto.response.PatientSummaryResponse;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -38,6 +36,22 @@ public class PatientServiceImpl implements PatientService {
     private final PatientRepository patientRepository;
     private final PatientMapper patientMapper;
     private final PatientAuditService patientAuditService;
+
+    // Get currently logged-in user's email from JWT authentication
+    private String getCurrentUserEmail() {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication != null
+                && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken)) {
+
+            return authentication.getName();
+        }
+
+        return "SYSTEM";
+    }
 
     // Register Patient
     @Override
@@ -67,7 +81,7 @@ public class PatientServiceImpl implements PatientService {
                 savedPatient.getId(),
                 "REGISTER",
                 "New patient registered",
-                "SYSTEM"
+                getCurrentUserEmail()
         );
 
         return ApiResponse.success(
@@ -172,7 +186,7 @@ public class PatientServiceImpl implements PatientService {
                 updatedPatient.getId(),
                 "UPDATE",
                 "Patient details updated",
-                "SYSTEM"
+                getCurrentUserEmail()
         );
 
         return ApiResponse.success(
@@ -200,7 +214,7 @@ public class PatientServiceImpl implements PatientService {
                 patient.getId(),
                 "DEACTIVATE",
                 "Patient account deactivated",
-                "SYSTEM"
+                getCurrentUserEmail()
         );
 
         return ApiResponse.success(
@@ -209,6 +223,7 @@ public class PatientServiceImpl implements PatientService {
         );
     }
 
+    // Search, Filter and Pagination
     @Override
     @Transactional(readOnly = true)
     public ApiResponse<Page<PatientSummaryResponse>> searchPatients(
