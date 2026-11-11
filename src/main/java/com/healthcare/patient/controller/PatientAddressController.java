@@ -1,3 +1,4 @@
+
 package com.healthcare.patient.controller;
 
 import com.healthcare.patient.dto.request.PatientAddressRequest;
@@ -10,6 +11,9 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,7 +26,9 @@ public class PatientAddressController {
     private final PatientAddressService patientAddressService;
 
     // Add patient address
+    // ADMIN and RECEPTIONIST can add addresses
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<PatientAddressResponse>> addAddress(
             @PathVariable Long patientId,
             @Valid @RequestBody PatientAddressRequest request) {
@@ -35,7 +41,9 @@ public class PatientAddressController {
     }
 
     // Get all addresses of a patient
+    // ADMIN, DOCTOR and RECEPTIONIST can view addresses
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<List<PatientAddressResponse>>> getPatientAddresses(
             @PathVariable Long patientId) {
 
@@ -47,7 +55,9 @@ public class PatientAddressController {
     }
 
     // Get address by ID
+    // ADMIN, DOCTOR and RECEPTIONIST can view address details
     @GetMapping("/{addressId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<PatientAddressResponse>> getAddressById(
             @PathVariable Long patientId,
             @PathVariable Long addressId) {
@@ -60,7 +70,9 @@ public class PatientAddressController {
     }
 
     // Update address
+    // ADMIN and RECEPTIONIST can update addresses
     @PutMapping("/{addressId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<PatientAddressResponse>> updateAddress(
             @PathVariable Long patientId,
             @PathVariable Long addressId,
@@ -74,7 +86,9 @@ public class PatientAddressController {
     }
 
     // Delete address
+    // Only ADMIN and RECEPTIONIST can delete addresses
     @DeleteMapping("/{addressId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<Void>> deleteAddress(
             @PathVariable Long patientId,
             @PathVariable Long addressId) {

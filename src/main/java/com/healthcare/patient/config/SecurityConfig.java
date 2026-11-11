@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 
@@ -16,6 +17,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -27,30 +29,30 @@ public class SecurityConfig {
             throws Exception {
 
         http
-                // Disable CSRF for stateless REST APIs
+                // Disable CSRF for REST APIs
                 .csrf(csrf -> csrf.disable())
 
-                // Configure API authorization
+                // API Authorization
                 .authorizeHttpRequests(auth -> auth
 
                         // Public health check
                         .requestMatchers("/actuator/health").permitAll()
 
-                        // All other APIs require authentication
+                        // All other APIs require JWT authentication
                         .anyRequest().authenticated()
                 )
 
-                // Custom 401 JSON error response
+                // Custom 401 JSON response
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(securityErrorHandler)
                 )
 
-                // No HTTP session
+                // Stateless authentication
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                // Add JWT filter
+                // Register JWT filter
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
