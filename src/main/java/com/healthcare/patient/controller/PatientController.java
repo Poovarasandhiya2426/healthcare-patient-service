@@ -23,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -78,7 +79,6 @@ public class PatientController {
 
     // Update Patient
     // ADMIN, RECEPTIONIST and PATIENT can update
-    // PATIENT can update only their own profile
     @PutMapping("/{patientId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'PATIENT')")
     public ResponseEntity<ApiResponse<PatientResponse>> updatePatient(
@@ -118,8 +118,33 @@ public class PatientController {
 
             @RequestParam(defaultValue = "DESC") String direction) {
 
-        Sort.Direction sortDirection =
-                Sort.Direction.fromString(direction);
+        // Validate page number
+        if (page < 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Page number cannot be negative"
+            );
+        }
+
+        // Validate page size
+        if (size < 1 || size > 100) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Page size must be between 1 and 100"
+            );
+        }
+
+        // Validate sorting direction
+        Sort.Direction sortDirection;
+
+        try {
+            sortDirection = Sort.Direction.fromString(direction);
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid sorting direction. Use ASC or DESC"
+            );
+        }
 
         Pageable pageable = PageRequest.of(
                 page,

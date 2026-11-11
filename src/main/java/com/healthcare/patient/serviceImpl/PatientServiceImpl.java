@@ -12,6 +12,7 @@ import com.healthcare.patient.entity.Patient;
 import com.healthcare.patient.enums.PatientStatus;
 import com.healthcare.patient.mapper.PatientMapper;
 import com.healthcare.patient.repository.PatientRepository;
+import com.healthcare.patient.security.JwtAuthenticationDetails;
 import com.healthcare.patient.service.PatientService;
 
 import lombok.RequiredArgsConstructor;
@@ -53,6 +54,7 @@ public class PatientServiceImpl implements PatientService {
         return "SYSTEM";
     }
 
+
     // Check whether logged-in patient owns the profile
     private void validatePatientOwnership(Patient patient) {
 
@@ -66,9 +68,19 @@ public class PatientServiceImpl implements PatientService {
                 .anyMatch(authority ->
                         authority.getAuthority().equals("ROLE_PATIENT"))) {
 
-            String loggedInEmail = authentication.getName();
+            Object details = authentication.getDetails();
 
-            if (!patient.getEmail().equalsIgnoreCase(loggedInEmail)) {
+            if (!(details instanceof JwtAuthenticationDetails jwtDetails)) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "Unable to verify patient identity"
+                );
+            }
+
+            Long loggedInUserId = jwtDetails.getUserId();
+
+            if (patient.getIdentityUserId() == null
+                    || !patient.getIdentityUserId().equals(loggedInUserId)) {
 
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN,
@@ -77,6 +89,7 @@ public class PatientServiceImpl implements PatientService {
             }
         }
     }
+
 
     // Register Patient
     @Override

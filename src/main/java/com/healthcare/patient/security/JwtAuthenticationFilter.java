@@ -17,6 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import com.healthcare.patient.security.JwtAuthenticationDetails;
 
 @Component
 @RequiredArgsConstructor
@@ -68,6 +69,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String email = jwtUtil.extractEmail(token);
             String role = jwtUtil.extractRole(token);
 
+            // Extract Identity Service user ID
+            Long userId = ((Number) jwtUtil.extractUserId(token)).longValue();
+
             // Handle role prefix correctly
             String authority = role.startsWith("ROLE_")
                     ? role
@@ -81,10 +85,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             List.of(new SimpleGrantedAuthority(authority))
                     );
 
-            // Set authentication details
+            // Store user ID along with authentication details
             authentication.setDetails(
-                    new WebAuthenticationDetailsSource()
-                            .buildDetails(request)
+                    new JwtAuthenticationDetails(request, userId)
             );
 
             // Store authentication in SecurityContext

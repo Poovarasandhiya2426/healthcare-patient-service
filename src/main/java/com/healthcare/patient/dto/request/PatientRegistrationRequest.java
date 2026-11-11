@@ -25,6 +25,7 @@ public class PatientRegistrationRequest {
 
     @NotBlank(message = "Email is required")
     @Email(message = "Enter a valid email address")
+    @Size(max = 150, message = "Email cannot exceed 150 characters")
     private String email;
 
     @NotBlank(message = "Phone number is required")
