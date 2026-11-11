@@ -4,7 +4,9 @@ package com.healthcare.patient.entity;
 import com.healthcare.patient.enums.BloodGroup;
 import com.healthcare.patient.enums.Gender;
 import com.healthcare.patient.enums.PatientStatus;
+
 import jakarta.persistence.*;
+
 import lombok.*;
 
 import java.time.LocalDate;
@@ -22,6 +24,10 @@ public class Patient {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    // Identity Service User ID
+    @Column(name = "identity_user_id", unique = true)
+    private Long identityUserId;
 
     @Column(nullable = false, length = 100)
     private String firstName;
@@ -60,6 +66,7 @@ public class Patient {
 
     @PrePersist
     public void onCreate() {
+
         createdAt = LocalDateTime.now();
 
         if (status == null) {
