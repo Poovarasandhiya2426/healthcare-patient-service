@@ -34,6 +34,16 @@ public class PatientController {
 
     private final PatientService patientService;
 
+    // Allowed sorting fields
+    private static final List<String> ALLOWED_SORT_FIELDS = List.of(
+            "id",
+            "firstName",
+            "lastName",
+            "email",
+            "createdAt",
+            "updatedAt"
+    );
+
     // Register Patient
     // ADMIN and RECEPTIONIST can register patients
     @PostMapping("/register")
@@ -107,15 +117,10 @@ public class PatientController {
     public ResponseEntity<ApiResponse<Page<PatientSummaryResponse>>> searchPatients(
 
             @RequestParam(required = false) String keyword,
-
             @RequestParam(required = false) PatientStatus status,
-
             @RequestParam(defaultValue = "0") int page,
-
             @RequestParam(defaultValue = "10") int size,
-
             @RequestParam(defaultValue = "id") String sortBy,
-
             @RequestParam(defaultValue = "DESC") String direction) {
 
         // Validate page number
@@ -134,6 +139,14 @@ public class PatientController {
             );
         }
 
+        // Validate sorting field
+        if (!ALLOWED_SORT_FIELDS.contains(sortBy)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid sort field. Allowed fields: " + ALLOWED_SORT_FIELDS
+            );
+        }
+
         // Validate sorting direction
         Sort.Direction sortDirection;
 
@@ -146,6 +159,7 @@ public class PatientController {
             );
         }
 
+        // Create pagination and sorting
         Pageable pageable = PageRequest.of(
                 page,
                 size,
